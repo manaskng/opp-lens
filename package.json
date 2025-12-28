@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/og": "^0.8.6",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.23.26",
     "lucide-react": "^0.562.0",
     "mongoose": "^9.0.2",
     "next": "16.1.1",
@@ -20,6 +22,7 @@
     "ogl": "^1.0.11",
     "posthog-js": "^1.310.1",
     "posthog-node": "^5.18.0",
+    "query-string": "^9.3.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.4.0",

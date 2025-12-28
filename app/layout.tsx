@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Schibsted_Grotesk, Martian_Mono } from "next/font/google";
-import  LightRays  from "@/components/LightRays";
+import LightRays from "@/components/LightRays";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { Suspense } from "react"; // <--- 1. Import Suspense
 
 const schibstedGrotesk = Schibsted_Grotesk({
   variable: "--font-schibsted-grotesk",
@@ -17,6 +18,9 @@ const martianMono = Martian_Mono({
 export const metadata: Metadata = {
   title: "DevEventSync App",
   description: "syncing events made easy",
+  icons: {
+    icon: "/icons/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -27,24 +31,29 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${schibstedGrotesk.variable} ${martianMono.variable} antialiased min-h-screen `}
+        className={`${schibstedGrotesk.variable} ${martianMono.variable} antialiased min-h-screen bg-dark-100 text-white`}
       >
-        <Navbar />
-        <div className="absolute inset-0 top-0 z-[-1] min-h-screen">
-   <LightRays
-    raysOrigin="top-center-offset"
-    raysColor="#5dfeca"
-    raysSpeed={0.5}
-    lightSpread={0.9}
-    rayLength={1.4}
-    followMouse={true}
-    mouseInfluence={0.02}
-    noiseAmount={0.0}
-    distortion={0.01}
-    className="custom-rays"
-  />
- </div>
-        <main>{children}</main>
+        {/* 2. Wrap Navbar in Suspense. fallback is what shows while loading */}
+        <Suspense fallback={<div className="h-16 w-full glass fixed top-0 z-50 opacity-50" />}>
+          <Navbar />
+        </Suspense>
+
+        <div className="absolute inset-0 top-0 z-[-1] min-h-screen pointer-events-none">
+          <LightRays
+            raysOrigin="top-center-offset"
+            raysColor="#5dfeca"
+            raysSpeed={0.5}
+            lightSpread={0.9}
+            rayLength={1.4}
+            followMouse={true}
+            mouseInfluence={0.02}
+            className="custom-rays"
+          />
+        </div>
+        
+        <main className="relative z-0 pt-24">
+            {children}
+        </main>
       </body>
     </html>
   );

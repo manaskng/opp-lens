@@ -1,140 +1,60 @@
 import React from 'react'
-import {notFound} from "next/navigation";
-import {IEvent} from "@/database";
-import {getSimilarEventsBySlug} from "@/lib/actions/event.actions";
-import Image from "next/image";
-import BookEvent from "@/components/BookEvent";
-import EventCard from "@/components/EventCard";
-import {cacheLife} from "next/cache";
+import { notFound } from "next/navigation";
+import { getSimilarEventsBySlug } from "@/lib/actions/event.actions";
+import { cacheLife } from "next/cache";
+import { auth } from "@/auth"; 
+import EventDetailsAnimated from "./EventDetailsAnimated";
+import connectDB from "@/lib/mongodb";
+import Event from "@/database/event.model";
+import { sanitizeData } from "@/lib/utils";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-
-const EventDetailItem = ({ icon, alt, label }: { icon: string; alt: string; label: string; }) => (
-    <div className="flex-row-gap-2 items-center">
-        <Image src={icon} alt={alt} width={17} height={17} />
-        <p>{label}</p>
-    </div>
-)
-
-const EventAgenda = ({ agendaItems }: { agendaItems: string[] }) => (
-    <div className="agenda">
-        <h2>Agenda</h2>
-        <ul>
-            {agendaItems.map((item) => (
-                <li key={item}>{item}</li>
-            ))}
-        </ul>
-    </div>
-)
-
-const EventTags = ({ tags }: { tags: string[] }) => (
-    <div className="flex flex-row gap-1.5 flex-wrap">
-        {tags.map((tag) => (
-            <div className="pill" key={tag}>{tag}</div>
-        ))}
-    </div>
-)
-
-const EventDetails = async ({ params }: { params: Promise<string> }) => {
-    'use cache'
+// --- 1. SEPARATE THE CACHED LOGIC ---
+async function getCachedEvent(slug: string) {
+    'use cache' 
     cacheLife('hours');
-    const slug = await params;
 
-    let event;
     try {
-        const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
-            next: { revalidate: 60 }
-        });
-
-        if (!request.ok) {
-            if (request.status === 404) {
-                return notFound();
-            }
-            throw new Error(`Failed to fetch event: ${request.statusText}`);
-        }
-
-        const response = await request.json();
-        event = response.event;
-
-        if (!event) {
-            return notFound();
-        }
+        await connectDB();
+        
+        // Fetch raw event
+        const event = await Event.findOne({ slug }).lean();
+        
+        if (!event) return null;
+        
+        // Sanitize (Convert ObjectId to string)
+        return sanitizeData(event);
     } catch (error) {
         console.error('Error fetching event:', error);
-        return notFound();
+        return null;
     }
+}
 
-    const { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } = event;
+// --- 2. MAIN COMPONENT ---
+const EventDetails = async ({ params }: { params: Promise<string> }) => {
+    // Parallel fetching of params and session
+    const [slug, session] = await Promise.all([
+        params,
+        auth()
+    ]);
 
-    if(!description) return notFound();
+    // Call the cached DB query
+    const event = await getCachedEvent(slug);
 
-    const bookings = 10;
+    if (!event) return notFound();
 
-    const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
+    const similarEvents = await getSimilarEventsBySlug(slug);
+    
+    // Check Ownership (Safe check even if user is not logged in)
+    const isOwner = session?.user?.email === event.organizer;
 
     return (
-        <section id="event">
-            <div className="header">
-                <h1>Event Description</h1>
-                <p>{description}</p>
-            </div>
-
-            <div className="details">
-                {/*    Left Side - Event Content */}
-                <div className="content">
-                    <Image src={image} alt="Event Banner" width={800} height={800} className="banner" />
-
-                    <section className="flex-col-gap-2">
-                        <h2>Overview</h2>
-                        <p>{overview}</p>
-                    </section>
-
-                    <section className="flex-col-gap-2">
-                        <h2>Event Details</h2>
-
-                        <EventDetailItem icon="/icons/calendar.svg" alt="calendar" label={date} />
-                        <EventDetailItem icon="/icons/clock.svg" alt="clock" label={time} />
-                        <EventDetailItem icon="/icons/pin.svg" alt="pin" label={location} />
-                        <EventDetailItem icon="/icons/mode.svg" alt="mode" label={mode} />
-                        <EventDetailItem icon="/icons/audience.svg" alt="audience" label={audience} />
-                    </section>
-
-                    <EventAgenda agendaItems={agenda} />
-
-                    <section className="flex-col-gap-2">
-                        <h2>About the Organizer</h2>
-                        <p>{organizer}</p>
-                    </section>
-
-                    <EventTags tags={tags} />
-                </div>
-
-                {/*    Right Side - Booking Form */}
-                <aside className="booking">
-                    <div className="signup-card">
-                        <h2>Book Your Spot</h2>
-                        {bookings > 0 ? (
-                            <p className="text-sm">
-                                Join {bookings} people who have already booked their spot!
-                            </p>
-                        ): (
-                            <p className="text-sm">Be the first to book your spot!</p>
-                        )}
-
-                        <BookEvent eventId={event._id} slug={event.slug} />
-                    </div>
-                </aside>
-            </div>
-
-            <div className="flex w-full flex-col gap-4 pt-20">
-                <h2>Similar Events</h2>
-                <div className="events">
-                    {similarEvents.length > 0 && similarEvents.map((similarEvent: IEvent) => (
-                        <EventCard key={similarEvent.title} {...similarEvent} />
-                    ))}
-                </div>
-            </div>
-        </section>
+        <EventDetailsAnimated 
+            event={event}
+            similarEvents={similarEvents}
+            bookingsCount={10} 
+            isOwner={isOwner || false}
+        />
     )
 }
-export default EventDetails
+
+export default EventDetails;
