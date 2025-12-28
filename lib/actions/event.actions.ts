@@ -6,13 +6,13 @@ import { auth } from "@/auth";
 import { v2 as cloudinary } from "cloudinary";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
+import { sanitizeData } from "@/lib/utils"; 
 
 cloudinary.config({
   secure: true,
 });
 
-// --- 1. CREATE EVENT ---
+// ---  CREATE EVENT ---
 export const createEvent = async (formData: FormData) => {
     try {
         const session = await auth();
@@ -82,7 +82,7 @@ export const createEvent = async (formData: FormData) => {
     redirect("/");
 }
 
-// --- 2. DELETE EVENT ---
+// ---  DELETE EVENT ---
 export const deleteEvent = async (slug: string) => {
     try {
         const session = await auth();
@@ -106,7 +106,7 @@ export const deleteEvent = async (slug: string) => {
     }
 }
 
-// --- 3. GET SIMILAR EVENTS ---
+// ---  GET SIMILAR EVENTS ---
 export const getSimilarEventsBySlug = async (slug: string) => {
     try {
         await connectDB();
@@ -153,6 +153,53 @@ export const getAllEvents = async ({ query, limit = 6, page = 1 }: { query?: str
     }
 }
 
+//  SMART FETCH: Events happening soon
+export const getUpcomingEvents = async (limit = 5) => {
+    try {
+        await connectDB();
+        
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const events = await Event.find({ 
+            date: { $gte: today.toISOString().split('T')[0] } 
+        })
+        .sort({ date: 1 }) 
+        .limit(limit)
+        .lean();
+
+        return sanitizeData(events);
+    } catch (error) {
+        console.error("Fetch Upcoming Error:", error);
+        return [];
+    }
+}
+
+//  SMART FETCH: Recommended based on Topic 
+export const getRecommendedEvents = async ({ topic, limit = 3 }: { topic: string, limit?: number }) => {
+    try {
+        await connectDB();
+        
+        // Logic: Search tags or title for the topic, excluding past events if possible
+        const regex = new RegExp(topic, 'i');
+        
+        const events = await Event.find({
+            $or: [
+                { tags: { $in: [regex] } },
+                { title: { $regex: regex } },
+                { category: { $regex: regex } }
+            ]
+        })
+        .sort({ createdAt: -1 }) // Newest additions first
+        .limit(limit)
+        .lean();
+
+        return sanitizeData(events);
+    } catch (error) {
+        console.error("Fetch Recommended Error:", error);
+        return [];
+    }
+}
+
 export const updateEvent = async (slug: string, formData: FormData) => {
     try {
         const session = await auth();
@@ -190,14 +237,14 @@ export const updateEvent = async (slug: string, formData: FormData) => {
             imageUrl = uploadResult.secure_url;
         }
 
-        // 2. Parse Arrays
+        //  Parse Arrays
         const tagsString = formData.get("tags") as string;
         const tags = tagsString ? tagsString.split(',').map(tag => tag.trim()).filter(t => t) : event.tags;
 
         const agendaString = formData.get("agenda") as string;
         const agenda = agendaString ? agendaString.split('\n').map(item => item.trim()).filter(i => i) : event.agenda;
 
-        // 3. Update Fields
+        //  Update Fields
         event.title = formData.get("title") || event.title;
         event.description = formData.get("description") || event.description;
         event.overview = formData.get("overview") || event.overview;

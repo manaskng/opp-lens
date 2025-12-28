@@ -3,7 +3,8 @@ import { Schibsted_Grotesk, Martian_Mono } from "next/font/google";
 import LightRays from "@/components/LightRays";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import { Suspense } from "react"; // <--- 1. Import Suspense
+import { Suspense } from "react"; 
+import ScrollToTop from "@/components/ScrollToTop";
 
 const schibstedGrotesk = Schibsted_Grotesk({
   variable: "--font-schibsted-grotesk",
@@ -52,8 +53,9 @@ export default function RootLayout({
         </div>
         
         <main className="relative z-0 pt-24">
-            {children}
-        </main>
+        {children}
+    </main>
+    <ScrollToTop />
       </body>
     </html>
   );
