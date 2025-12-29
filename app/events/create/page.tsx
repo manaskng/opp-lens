@@ -1,18 +1,51 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { createEvent } from "@/lib/actions/event.actions";
-import { ImagePlus, Calendar, MapPin, Tag, List } from "lucide-react";
+"use client"; 
 
-const input =
-  "w-full bg-dark-200 border border-border-dark rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:border-primary outline-none transition";
+import { createEvent } from "@/lib/actions/event.actions";
+import { ImagePlus, Calendar, List, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+const input = "w-full bg-dark-200 border border-border-dark rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:border-primary outline-none transition";
 const label = "text-sm font-medium text-light-100 mb-2 block";
 
-export default async function CreateEventPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
+export default function CreateEventPage() {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 2. Custom Submit Handler
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const file = formData.get("image") as File;
+
+    // --- 3. THE CLIENT-SIDE VALIDATION ---
+    if (file && file.size > 4 * 1024 * 1024) { // 4MB in bytes
+        setError("File size exceeds 4MB. Please upload a smaller image.");
+        setIsLoading(false);
+        // Scroll to top to show error
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return; 
+    }
+    // -------------------------------------
+
+    const result = await createEvent(formData);
+
+    if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
+    } else {
+        // Redirect handled in action, but we can double ensure
+        // router.push("/"); 
+    }
+  };
 
   return (
     <section className="max-w-5xl mx-auto px-4 py-14">
+      
       {/* Header */}
       <div className="mb-14 text-center">
         <span className="inline-block mb-4 px-4 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
@@ -26,46 +59,38 @@ export default async function CreateEventPage() {
         </p>
       </div>
 
-      <form action={createEvent} className="space-y-14">
+      {/* ERROR MESSAGE BANNER */}
+      {error && (
+        <div className="mb-8 p-4 rounded-xl bg-red-500/10 border border-red-500/50 flex items-center gap-3 text-red-400 animate-pulse">
+            <AlertCircle size={20} />
+            <p className="font-semibold">{error}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-14">
+        
         {/* SECTION: STORY */}
         <div className="glass rounded-2xl border border-dark-200 p-8 space-y-6">
           <h3 className="text-xl font-bold text-white">Event Story</h3>
 
           <div>
             <label className={label}>Event Title</label>
-            <input
-              name="title"
-              required
-              className={input}
-              placeholder="React Summit 2025"
-            />
+            <input name="title" required className={input} placeholder="React Summit 2025" />
           </div>
 
           <div>
             <label className={label}>Short Description</label>
-            <textarea
-              name="description"
-              rows={3}
-              required
-              className={input}
-              placeholder="A high-impact conference for modern React developers…"
-            />
+            <textarea name="description" rows={3} required className={input} placeholder="A high-impact conference for modern React developers…" />
           </div>
 
           <div>
             <label className={label}>Detailed Overview</label>
-            <textarea
-              name="overview"
-              rows={6}
-              required
-              className={input}
-              placeholder="What will attendees learn? Who is this for? Why should they care?"
-            />
+            <textarea name="overview" rows={6} required className={input} placeholder="What will attendees learn? Who is this for?" />
           </div>
         </div>
 
-        {/* SECTION: IMAGE */}
-        <div className="glass rounded-2xl border border-dark-200 p-8 space-y-4">
+        {/* SECTION: IMAGE (With Warning) */}
+        <div className={`glass rounded-2xl border p-8 space-y-4 transition-colors ${error.includes("File size") ? "border-red-500/50 bg-red-500/5" : "border-dark-200"}`}>
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
             <ImagePlus size={20} /> Event Cover
           </h3>
@@ -75,8 +100,10 @@ export default async function CreateEventPage() {
             <p className="text-sm text-gray-400">
               Click to upload or drag & drop
             </p>
-            <p className="text-xs text-gray-500 mt-1">
-              PNG, JPG — recommended 16:9
+            
+            {/* --- 4. EXPLICIT WARNING TEXT --- */}
+            <p className="text-xs text-yellow-500/80 mt-2 font-mono font-medium bg-yellow-500/10 px-2 py-1 rounded">
+               ⚠️ STRICT LIMIT: Max 4MB
             </p>
 
             <input
@@ -85,6 +112,14 @@ export default async function CreateEventPage() {
               accept="image/*"
               required
               className="hidden"
+              // Optional: You can check size on change instantly too
+              onChange={(e) => {
+                  if (e.target.files?.[0]?.size! > 4 * 1024 * 1024) {
+                      setError("File too large! Must be under 4MB.");
+                  } else {
+                      setError("");
+                  }
+              }}
             />
           </label>
         </div>
@@ -117,32 +152,17 @@ export default async function CreateEventPage() {
 
             <div>
               <label className={label}>Target Audience</label>
-              <input
-                name="audience"
-                required
-                className={input}
-                placeholder="Students, Senior Devs, Founders"
-              />
+              <input name="audience" required className={input} placeholder="Students, Senior Devs" />
             </div>
 
             <div>
               <label className={label}>City / Region</label>
-              <input
-                name="location"
-                required
-                className={input}
-                placeholder="San Francisco, CA"
-              />
+              <input name="location" required className={input} placeholder="San Francisco, CA" />
             </div>
 
             <div>
               <label className={label}>Venue</label>
-              <input
-                name="venue"
-                required
-                className={input}
-                placeholder="Moscone Center, Hall B"
-              />
+              <input name="venue" required className={input} placeholder="Moscone Center" />
             </div>
           </div>
         </div>
@@ -155,23 +175,12 @@ export default async function CreateEventPage() {
 
           <div>
             <label className={label}>Agenda (one per line)</label>
-            <textarea
-              name="agenda"
-              rows={5}
-              required
-              className={input}
-              placeholder="09:00 – Opening Keynote&#10;10:00 – Advanced React Patterns"
-            />
+            <textarea name="agenda" rows={5} required className={input} placeholder="09:00 – Opening Keynote&#10;10:00 – Advanced React Patterns" />
           </div>
 
           <div>
             <label className={label}>Tags</label>
-            <input
-              name="tags"
-              required
-              className={input}
-              placeholder="React, Next.js, AI, Networking"
-            />
+            <input name="tags" required className={input} placeholder="React, Next.js, AI" />
           </div>
         </div>
 
@@ -179,9 +188,11 @@ export default async function CreateEventPage() {
         <div className="flex justify-center pt-4">
           <button
             type="submit"
-            className="px-10 py-4 rounded-xl bg-primary text-black font-bold text-lg hover:bg-primary/90 transition-all hover:scale-[1.02] shadow-[0_0_30px_rgba(89,222,202,0.35)]"
+            disabled={isLoading}
+            className={`px-10 py-4 rounded-xl font-bold text-lg transition-all shadow-[0_0_30px_rgba(89,222,202,0.35)] 
+                ${isLoading ? "bg-gray-600 text-gray-400 cursor-not-allowed" : "bg-primary text-black hover:bg-primary/90 hover:scale-[1.02]"}`}
           >
-            Publish Event 🚀
+            {isLoading ? "Publishing..." : "Publish Event 🚀"}
           </button>
         </div>
       </form>

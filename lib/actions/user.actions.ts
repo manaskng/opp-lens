@@ -5,6 +5,8 @@ import connectDB from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {hash} from "bcryptjs";
+
 export async function getUserOnboarding() {
     const session = await auth();
     if (!session?.user?.email) return null;
@@ -64,5 +66,38 @@ export async function updateUser(formData: FormData) {
   } catch (error) {
     console.error(error);
     return { error: "Failed to update profile" };
+  }
+}
+export async function registerUser(userData: { name: string; email: string; password?: string }) {
+  try {
+    await connectDB();
+
+    const { name, email, password } = userData;
+
+  
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return { error: "User already exists" };
+    }
+
+    // 2. Hash Password 
+    let hashedPassword = undefined;
+    if (password) {
+      hashedPassword = await hash(password, 10);
+    }
+
+    // 3. Create User
+    await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      image: `https://ui-avatars.com/api/?name=${name}&background=random`, // Default avatar
+      role: "user",
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Registration Error:", error);
+    return { error: "Failed to register user" };
   }
 }

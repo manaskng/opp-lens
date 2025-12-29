@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { registerUser } from "@/lib/actions/user.actions";
 import Image from "next/image";
+import SocialAuthForm from "@/components/SocialAuthForm"; // <--- Import Social Buttons
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="glass p-8 border border-dark-200 rounded-2xl shadow-2xl">
+    <div className="glass p-8 border border-dark-200 rounded-2xl shadow-2xl w-full max-w-md">
       <div className="flex flex-col items-center gap-2 mb-8">
         <Image src="/icons/logo.png" alt="logo" width={40} height={40} />
         <h1 className="text-2xl font-bold text-white">Create Account</h1>
@@ -42,35 +43,38 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {error && <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded-lg text-sm">{error}</div>}
         
+        {/* Username */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-light-100">Username</label>
           <input 
             name="name" 
             type="text" 
             required 
-            className="bg-dark-200 border border-border-dark rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+            className="bg-dark-200 border border-border-dark rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600"
             placeholder="johndoe"
           />
         </div>
 
+        {/* Email */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-light-100">Email Address</label>
           <input 
             name="email" 
             type="email" 
             required 
-            className="bg-dark-200 border border-border-dark rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+            className="bg-dark-200 border border-border-dark rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600"
             placeholder="john@example.com"
           />
         </div>
 
+        {/* Password */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-light-100">Password</label>
           <input 
             name="password" 
             type="password" 
             required 
-            className="bg-dark-200 border border-border-dark rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+            className="bg-dark-200 border border-border-dark rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600"
             placeholder="••••••••"
           />
         </div>
@@ -83,6 +87,9 @@ export default function RegisterPage() {
           {isLoading ? "Creating Account..." : "Sign Up"}
         </button>
       </form>
+
+      {/* --- SOCIAL LOGIN SECTION --- */}
+      <SocialAuthForm />
 
       <p className="mt-6 text-center text-light-200 text-sm">
         Already have an account? <Link href="/login" className="text-primary hover:underline">Log in</Link>

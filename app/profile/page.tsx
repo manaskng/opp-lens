@@ -11,16 +11,21 @@ export default async function ProfilePage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const [bookings, userProfile] = await Promise.all([
+  // 1. Fetch Data
+  const [rawBookings, rawUserProfile] = await Promise.all([
     getBookingsByUser(),
     getUserOnboarding()
   ]);
 
+  // 2. SANITIZE DATA (The Fix)
+  // This strips out the complex MongoDB _id/buffer objects and makes them plain JSON
+  const bookings = JSON.parse(JSON.stringify(rawBookings));
+  const userProfile = JSON.parse(JSON.stringify(rawUserProfile));
+
   return (
-    // 1. WIDER PAGE CONTAINER
     <section className="mt-10 pb-20 max-w-[90rem] mx-auto px-4 md:px-8">
       
-      {/* --- WIDE PROFILE HEADER --- */}
+      {/* --- PROFILE HEADER --- */}
       <div className="relative glass p-8 md:p-12 rounded-[2.5rem] border border-white/10 overflow-hidden bg-gradient-to-br from-[#1a1f2e] to-black mb-16 shadow-2xl w-full">
         
         {/* Edit Button */}
@@ -34,7 +39,7 @@ export default async function ProfilePage() {
 
         <div className="flex flex-col lg:flex-row items-start gap-10 relative z-10">
           
-          {/* Avatar Area */}
+          {/* Avatar */}
           <div className="relative shrink-0 mx-auto lg:mx-0">
             <div className="h-32 w-32 md:h-44 md:w-44 rounded-full bg-gradient-to-br from-primary to-purple-600 p-[3px] shadow-[0_0_40px_rgba(89,222,202,0.3)]">
               <div className="h-full w-full rounded-full bg-black flex items-center justify-center overflow-hidden relative">
@@ -56,7 +61,7 @@ export default async function ProfilePage() {
             </div>
           </div>
 
-          {/* User Info Area */}
+          {/* User Info */}
           <div className="flex-1 w-full space-y-6 pt-2 text-center lg:text-left">
             <div>
                 <h1 className="text-5xl font-bold text-white tracking-tight mb-3">
@@ -101,7 +106,7 @@ export default async function ProfilePage() {
             {/* Action Bar */}
             <div className="flex flex-col lg:flex-row items-center gap-6 pt-6 border-t border-white/5 w-full mt-4">
                 
-                {/* Social Links (Dynamic Fallback) */}
+                {/* Social Links */}
                 <div className="flex gap-3">
                     {userProfile?.portfolio ? (
                         <a href={userProfile.portfolio} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/50 transition-all text-sm font-bold text-white group">
@@ -143,10 +148,6 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
-
-        {/* Ambient Glows */}
-        <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-40"></div>
-        <div className="pointer-events-none absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-dark-100/50 to-transparent"></div>
       </div>
 
       {/* --- SCHEDULE SECTION --- */}
@@ -164,7 +165,6 @@ export default async function ProfilePage() {
       </div>
 
       {bookings.length > 0 ? (
-        // 2. WIDER GRID FOR CARDS
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
           {bookings.map((booking: any) => {
             if (!booking.eventId) return null;
