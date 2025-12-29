@@ -1,21 +1,30 @@
-import { Schema, model, models, Document } from "mongoose";
-// definging the interface for User which makes the Schema type-safe
+import { Schema, models, model, Document } from "mongoose";
+
 export interface IUser extends Document {
   clerkId?: string; 
-  name: string;
   email: string;
-  password?: string;
-  picture?: string;
-  role: "USER" | "ADMIN";
+  name: string;
+  image: string;
+  interests: string[]; 
+  bio?: string;
+  location?: string;
+  portfolio?: string;
+  github?: string;
+  institution?: string; 
 }
 
-const UserSchema = new Schema<IUser>({
-  name: { type: String, required: true },
+const UserSchema = new Schema({
   email: { type: String, required: true, unique: true },
-  password: { type: String },
-  picture: { type: String },
-  role: { type: String, default: "USER" },
+  name: { type: String, required: true },
+  image: { type: String },
+  interests: { type: [String], default: [] }, 
+  bio: { type: String },
+  location: { type: String },
+  portfolio: { type: String },
+  github: { type: String },
+  institution: { type: String },
 }, { timestamps: true });
 
 const User = models.User || model("User", UserSchema);
+
 export default User;

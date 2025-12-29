@@ -2,28 +2,67 @@
 
 import User from "@/database/user.model";
 import connectDB from "@/lib/mongodb";
-import { hash } from "bcryptjs";
+import { auth } from "@/auth";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+export async function getUserOnboarding() {
+    const session = await auth();
+    if (!session?.user?.email) return null;
 
-export async function registerUser(params: any) {
-  try {
     await connectDB();
-    
-    const { name, email, password } = params;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-        return { error: "User already exists with this email." };
-    }
-    const hashedPassword = await hash(password, 10);
-    await User.create({
-      name,      // This will serve as the "Username"
-      email,
-      password: hashedPassword,
-      role: "USER" 
-    });
+    const user = await User.findOneAndUpdate(
+        { email: session.user.email },
+        { 
+            name: session.user.name, 
+            image: session.user.image 
+        },
+        { new: true, upsert: true }
+    ).lean();
 
+    return JSON.parse(JSON.stringify(user));
+}
+
+export async function updateUser(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.email) return { error: "Not authenticated" };
+
+  await connectDB();
+
+  // Get existing fields
+  const bio = formData.get("bio") as string;
+  const location = formData.get("location") as string;
+  
+  // --- NEW FIELDS ---
+  const portfolio = formData.get("portfolio") as string;
+  const github = formData.get("github") as string;
+  const institution = formData.get("institution") as string;
+
+  // Process Interests
+  const interestsString = formData.get("interests") as string;
+  const interests = interestsString 
+    ? interestsString.split(",").map((i) => i.trim()).filter((i) => i.length > 0)
+    : [];
+
+  try {
+    await User.findOneAndUpdate(
+      { email: session.user.email },
+      { 
+        bio, 
+        location, 
+        interests,
+        // Save new fields
+        portfolio,
+        github,
+        institution
+      },
+      { new: true }
+    );
+
+    revalidatePath("/profile");
+    revalidatePath("/"); 
     return { success: true };
   } catch (error) {
-    console.error("Registration Error:", error);
-    return { error: "Something went wrong while registering." };
+    console.error(error);
+    return { error: "Failed to update profile" };
   }
 }
