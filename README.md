@@ -1,7 +1,6 @@
 # DevEvent Sync
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-2ea44f?style=for-the-badge&logo=vercel)](https://dev-event-sync.vercel.app/)
-[![Ask DeepWiki](https://devin.ai/assets/askdeepwiki.png)](https://deepwiki.com/manaskng/Dev-Event_Sync)
 
 **DevEvent Sync** is a modern, full-stack platform designed to connect developers through tech events. It goes beyond simple CRUD, offering an intelligent, personalized, and highly interactive experience for discovering, hosting, and managing developer meetups and hackathons.
 
