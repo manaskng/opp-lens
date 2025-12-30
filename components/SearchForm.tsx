@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formUrlQuery, removeKeysFromQuery } from "@/lib/utils";
-import { Search } from "lucide-react"; // <--- Import Lucide Icon
+import { Search } from "lucide-react"; 
 
 export default function SearchForm() {
   const [search, setSearch] = useState("");
