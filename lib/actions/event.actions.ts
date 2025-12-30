@@ -12,7 +12,7 @@ cloudinary.config({
   secure: true,
 });
 
-// ---  CREATE EVENT ---
+// --- CREATE EVENT ---
 export const createEvent = async (formData: FormData) => {
     try {
         const session = await auth();
@@ -46,11 +46,9 @@ export const createEvent = async (formData: FormData) => {
         }
 
         // Parse Complex Fields
-        // Handle "Tag1, Tag2" input
         const tagsString = formData.get("tags") as string;
         const tags = tagsString ? tagsString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
 
-        // Handle "Agenda Item 1 \n Agenda Item 2" input
         const agendaString = formData.get("agenda") as string;
         const agenda = agendaString ? agendaString.split('\n').map(item => item.trim()).filter(item => item.length > 0) : [];
 
@@ -69,6 +67,10 @@ export const createEvent = async (formData: FormData) => {
             image: imageUrl,
             tags: tags,
             agenda: agenda,
+            // --- NEW CAPACITY FIELDS ---
+            capacity: Number(formData.get("capacity")) || 50,
+            seatsTaken: 0,
+            // ---------------------------
             // Auto-generate slug
             slug: (formData.get("title") as string).toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'),
         });
@@ -82,7 +84,7 @@ export const createEvent = async (formData: FormData) => {
     redirect("/");
 }
 
-// ---  DELETE EVENT ---
+// --- DELETE EVENT ---
 export const deleteEvent = async (slug: string) => {
     try {
         const session = await auth();
@@ -106,7 +108,7 @@ export const deleteEvent = async (slug: string) => {
     }
 }
 
-// ---  GET SIMILAR EVENTS ---
+// --- GET SIMILAR EVENTS ---
 export const getSimilarEventsBySlug = async (slug: string) => {
     try {
         await connectDB();
@@ -153,7 +155,7 @@ export const getAllEvents = async ({ query, limit = 6, page = 1 }: { query?: str
     }
 }
 
-//  SMART FETCH: Events happening soon
+// SMART FETCH: Events happening soon
 export const getUpcomingEvents = async (limit = 5) => {
     try {
         await connectDB();
@@ -174,7 +176,7 @@ export const getUpcomingEvents = async (limit = 5) => {
     }
 }
 
-//  SMART FETCH: Recommended based on Topic 
+// SMART FETCH: Recommended based on Topic 
 export const getRecommendedEvents = async ({ topic, limit = 3 }: { topic: string, limit?: number }) => {
     try {
         await connectDB();
@@ -200,6 +202,7 @@ export const getRecommendedEvents = async ({ topic, limit = 3 }: { topic: string
     }
 }
 
+// --- UPDATE EVENT (With Capacity Safety) ---
 export const updateEvent = async (slug: string, formData: FormData) => {
     try {
         const session = await auth();
@@ -214,6 +217,15 @@ export const updateEvent = async (slug: string, formData: FormData) => {
         if (event.organizer !== session.user.email) {
             return { error: "You are not authorized to edit this event" };
         }
+
+        // --- NEW SAFETY CHECK: CAPACITY ---
+        const newCapacity = Number(formData.get("capacity"));
+        const currentSeatsTaken = event.seatsTaken || 0;
+
+        if (newCapacity < currentSeatsTaken) {
+            return { error: `Cannot reduce capacity to ${newCapacity}. You already have ${currentSeatsTaken} bookings.` };
+        }
+        // ----------------------------------
 
         // 1. Handle Image Logic (Keep old one if no new file)
         const imageFile = formData.get("image") as File;
@@ -237,14 +249,14 @@ export const updateEvent = async (slug: string, formData: FormData) => {
             imageUrl = uploadResult.secure_url;
         }
 
-        //  Parse Arrays
+        // Parse Arrays
         const tagsString = formData.get("tags") as string;
         const tags = tagsString ? tagsString.split(',').map(tag => tag.trim()).filter(t => t) : event.tags;
 
         const agendaString = formData.get("agenda") as string;
         const agenda = agendaString ? agendaString.split('\n').map(item => item.trim()).filter(i => i) : event.agenda;
 
-        //  Update Fields
+        // Update Fields
         event.title = formData.get("title") || event.title;
         event.description = formData.get("description") || event.description;
         event.overview = formData.get("overview") || event.overview;
@@ -254,6 +266,7 @@ export const updateEvent = async (slug: string, formData: FormData) => {
         event.time = formData.get("time") || event.time;
         event.mode = formData.get("mode") || event.mode;
         event.audience = formData.get("audience") || event.audience;
+        event.capacity = newCapacity; // <--- Save Validated Capacity
         event.image = imageUrl;
         event.tags = tags;
         event.agenda = agenda;

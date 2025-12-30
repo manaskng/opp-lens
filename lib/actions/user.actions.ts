@@ -1,11 +1,48 @@
 "use server";
 
 import User from "@/database/user.model";
+import Booking from "@/database/booking.model"; 
+import Event from "@/database/event.model";     
 import connectDB from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {hash} from "bcryptjs";
+import { hash } from "bcryptjs";
+
+// --- NEW FUNCTION FOR DASHBOARD ---
+export async function getUserDashboardData() {
+    const session = await auth();
+    if (!session?.user?.email) return { attending: [], hosting: [] };
+
+    try {
+        await connectDB();
+        
+        // 1. Fetch "Attending" (Events I booked)
+        const bookings = await Booking.find({ email: session.user.email })
+            .populate({
+                path: 'eventId',
+                model: Event,
+                select: 'title image location date time slug mode seatsTaken capacity'
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // 2. Fetch "Hosting" (Events I organized)
+        // Note: Assuming 'organizer' field in Event stores the user's email
+        const hostedEvents = await Event.find({ organizer: session.user.email })
+            .sort({ date: 1 }) // Soonest first
+            .lean();
+
+        return {
+            attending: JSON.parse(JSON.stringify(bookings)),
+            hosting: JSON.parse(JSON.stringify(hostedEvents))
+        };
+    } catch (error) {
+        console.error("Dashboard Fetch Error:", error);
+        return { attending: [], hosting: [] };
+    }
+}
+// ----------------------------------
 
 export async function getUserOnboarding() {
     const session = await auth();
@@ -68,13 +105,13 @@ export async function updateUser(formData: FormData) {
     return { error: "Failed to update profile" };
   }
 }
+
 export async function registerUser(userData: { name: string; email: string; password?: string }) {
   try {
     await connectDB();
 
     const { name, email, password } = userData;
 
-  
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return { error: "User already exists" };

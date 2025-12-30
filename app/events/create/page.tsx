@@ -1,7 +1,7 @@
-"use client"; 
+"use client";
 
 import { createEvent } from "@/lib/actions/event.actions";
-import { ImagePlus, Calendar, List, AlertCircle } from "lucide-react";
+import { ImagePlus, Calendar, List, AlertCircle, Users } from "lucide-react"; // Added Users icon
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -13,7 +13,6 @@ export default function CreateEventPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // 2. Custom Submit Handler
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -22,24 +21,21 @@ export default function CreateEventPage() {
     const formData = new FormData(e.currentTarget);
     const file = formData.get("image") as File;
 
-    // --- 3. THE CLIENT-SIDE VALIDATION ---
-    if (file && file.size > 4 * 1024 * 1024) { // 4MB in bytes
+    if (file && file.size > 4 * 1024 * 1024) { 
         setError("File size exceeds 4MB. Please upload a smaller image.");
         setIsLoading(false);
-        // Scroll to top to show error
         window.scrollTo({ top: 0, behavior: "smooth" });
         return; 
     }
-    // -------------------------------------
 
     const result = await createEvent(formData);
 
     if (result?.error) {
         setError(result.error);
         setIsLoading(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-        // Redirect handled in action, but we can double ensure
-        // router.push("/"); 
+        router.push("/"); 
     }
   };
 
@@ -59,7 +55,6 @@ export default function CreateEventPage() {
         </p>
       </div>
 
-      {/* ERROR MESSAGE BANNER */}
       {error && (
         <div className="mb-8 p-4 rounded-xl bg-red-500/10 border border-red-500/50 flex items-center gap-3 text-red-400 animate-pulse">
             <AlertCircle size={20} />
@@ -80,7 +75,7 @@ export default function CreateEventPage() {
 
           <div>
             <label className={label}>Short Description</label>
-            <textarea name="description" rows={3} required className={input} placeholder="A high-impact conference for modern React developers…" />
+            <textarea name="description" rows={3} required className={input} placeholder="A high-impact conference..." />
           </div>
 
           <div>
@@ -89,7 +84,7 @@ export default function CreateEventPage() {
           </div>
         </div>
 
-        {/* SECTION: IMAGE (With Warning) */}
+        {/* SECTION: IMAGE */}
         <div className={`glass rounded-2xl border p-8 space-y-4 transition-colors ${error.includes("File size") ? "border-red-500/50 bg-red-500/5" : "border-dark-200"}`}>
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
             <ImagePlus size={20} /> Event Cover
@@ -97,14 +92,8 @@ export default function CreateEventPage() {
 
           <label className="group relative flex flex-col items-center justify-center border-2 border-dashed border-border-dark rounded-2xl p-10 cursor-pointer hover:border-primary transition">
             <ImagePlus className="text-gray-400 mb-3 group-hover:text-primary" size={32} />
-            <p className="text-sm text-gray-400">
-              Click to upload or drag & drop
-            </p>
-            
-            {/* --- 4. EXPLICIT WARNING TEXT --- */}
-            <p className="text-xs text-yellow-500/80 mt-2 font-mono font-medium bg-yellow-500/10 px-2 py-1 rounded">
-               ⚠️ STRICT LIMIT: Max 4MB
-            </p>
+            <p className="text-sm text-gray-400">Click to upload or drag & drop</p>
+            <p className="text-xs text-yellow-500/80 mt-2 font-mono font-medium bg-yellow-500/10 px-2 py-1 rounded">⚠️ STRICT LIMIT: Max 4MB</p>
 
             <input
               type="file"
@@ -112,7 +101,6 @@ export default function CreateEventPage() {
               accept="image/*"
               required
               className="hidden"
-              // Optional: You can check size on change instantly too
               onChange={(e) => {
                   if (e.target.files?.[0]?.size! > 4 * 1024 * 1024) {
                       setError("File too large! Must be under 4MB.");
@@ -150,6 +138,23 @@ export default function CreateEventPage() {
               </select>
             </div>
 
+            {/* --- NEW CAPACITY INPUT --- */}
+            <div>
+              <label className={label}>Total Capacity</label>
+              <div className="relative">
+                  <Users className="absolute left-3 top-3.5 text-gray-500" size={18} />
+                  <input 
+                    name="capacity" 
+                    type="number" 
+                    min="1" 
+                    defaultValue="50" 
+                    required 
+                    className={`${input} pl-10`} 
+                    placeholder="50" 
+                  />
+              </div>
+            </div>
+
             <div>
               <label className={label}>Target Audience</label>
               <input name="audience" required className={input} placeholder="Students, Senior Devs" />
@@ -160,7 +165,7 @@ export default function CreateEventPage() {
               <input name="location" required className={input} placeholder="San Francisco, CA" />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className={label}>Venue</label>
               <input name="venue" required className={input} placeholder="Moscone Center" />
             </div>
@@ -184,7 +189,6 @@ export default function CreateEventPage() {
           </div>
         </div>
 
-        {/* CTA */}
         <div className="flex justify-center pt-4">
           <button
             type="submit"

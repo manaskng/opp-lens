@@ -16,6 +16,10 @@ export interface IEvent extends Document {
   agenda: string[];
   organizer: string;
   tags: string[];
+  // --- NEW FIELDS ---
+  capacity: number;
+  seatsTaken: number;
+  // ------------------
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,6 +106,16 @@ const EventSchema = new Schema<IEvent>(
         validator: (v: string[]) => v.length > 0,
         message: 'At least one tag is required',
       },
+    },
+    // --- NEW FIELDS FOR CONCURRENCY ---
+    capacity: { 
+      type: Number, 
+      default: 50, // Default to 50 spots
+      min: [1, 'Capacity must be at least 1'] 
+    }, 
+    seatsTaken: { 
+      type: Number, 
+      default: 0 
     },
   },
   {

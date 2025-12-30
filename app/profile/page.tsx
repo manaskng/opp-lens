@@ -1,31 +1,30 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getBookingsByUser } from "@/lib/actions/booking.actions";
-import { getUserOnboarding } from "@/lib/actions/user.actions"; 
-import EventCard from "@/components/EventCard";
+import { getUserDashboardData, getUserOnboarding } from "@/lib/actions/user.actions"; 
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Settings, Globe, Github, Building2, Calendar, PlusCircle } from "lucide-react"; 
+import { MapPin, Settings, Globe, Github, Building2, PlusCircle } from "lucide-react"; 
+import ProfileTabs from "@/components/ProfileTabs"; 
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  // 1. Fetch Data
-  const [rawBookings, rawUserProfile] = await Promise.all([
-    getBookingsByUser(),
+  // 1. Fetch Data in Parallel (Profile Info + Dashboard Data)
+  const [dashboardData, rawUserProfile] = await Promise.all([
+    getUserDashboardData(),
     getUserOnboarding()
   ]);
 
-  // 2. SANITIZE DATA (The Fix)
-  // This strips out the complex MongoDB _id/buffer objects and makes them plain JSON
-  const bookings = JSON.parse(JSON.stringify(rawBookings));
+  // 2. Sanitize Data (Strip MongoDB internals)
   const userProfile = JSON.parse(JSON.stringify(rawUserProfile));
+  const attending = dashboardData?.attending || [];
+  const hosting = dashboardData?.hosting || [];
 
   return (
     <section className="mt-10 pb-20 max-w-[90rem] mx-auto px-4 md:px-8">
       
-      {/* --- PROFILE HEADER --- */}
+      {/* --- 1. PROFILE HEADER (Preserved from your original code) --- */}
       <div className="relative glass p-8 md:p-12 rounded-[2.5rem] border border-white/10 overflow-hidden bg-gradient-to-br from-[#1a1f2e] to-black mb-16 shadow-2xl w-full">
         
         {/* Edit Button */}
@@ -68,7 +67,7 @@ export default async function ProfilePage() {
                     {userProfile?.name || session.user.name}
                 </h1>
                 
-                {/* Meta Row */}
+                {/* Meta Row: Email, Institution, Location */}
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 text-gray-400 text-sm md:text-base">
                     <p className="font-medium text-gray-500 mr-2">{session.user.email}</p>
                     
@@ -103,10 +102,9 @@ export default async function ProfilePage() {
                 </p>
             )}
 
-            {/* Action Bar */}
+            {/* Social Links & Interests */}
             <div className="flex flex-col lg:flex-row items-center gap-6 pt-6 border-t border-white/5 w-full mt-4">
                 
-                {/* Social Links */}
                 <div className="flex gap-3">
                     {userProfile?.portfolio ? (
                         <a href={userProfile.portfolio} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/50 transition-all text-sm font-bold text-white group">
@@ -133,7 +131,7 @@ export default async function ProfilePage() {
 
                 <div className="hidden lg:block w-[1px] h-8 bg-white/10 mx-2" />
 
-                {/* Interests */}
+                {/* Interests Pills */}
                 {userProfile?.interests && userProfile.interests.length > 0 ? (
                     <div className="flex flex-wrap justify-center gap-2">
                         {userProfile.interests.map((tag: string) => (
@@ -150,49 +148,13 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* --- SCHEDULE SECTION --- */}
-      <div className="flex items-center gap-4 mb-10">
-        <div className="p-2 bg-white/5 rounded-lg border border-white/10">
-            <Calendar className="text-primary" size={24} />
-        </div>
-        <h2 className="text-3xl font-bold font-schibsted-grotesk text-white">
-          My Schedule
-        </h2>
-        <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-        <span className="text-sm text-gray-500 font-mono bg-white/5 px-3 py-1 rounded-full border border-white/5">
-            {bookings.length} {bookings.length === 1 ? 'EVENT' : 'EVENTS'}
-        </span>
-      </div>
-
-      {bookings.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-          {bookings.map((booking: any) => {
-            if (!booking.eventId) return null;
-
-            return (
-              <div key={booking._id} className="relative group w-full">
-                 <div className="absolute top-3 right-3 z-20 bg-green-500/20 backdrop-blur-md border border-green-500/40 text-green-400 text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">
-                    CONFIRMED
-                 </div>
-                 <EventCard {...booking.eventId} />
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-24 px-6 bg-white/5 rounded-[2rem] border border-dashed border-white/10 text-center">
-          <div className="w-20 h-20 bg-dark-200 rounded-full flex items-center justify-center mb-6 shadow-inner">
-             <Image src="/icons/calendar.svg" alt="calendar" width={32} height={32} className="opacity-40" />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">Your schedule is clear</h3>
-          <p className="text-gray-400 max-w-sm mb-8">
-            You haven't booked any events yet. Check out the "For You" section on the homepage!
-          </p>
-          <Link href="/" className="bg-white text-black font-bold py-3 px-8 rounded-full hover:bg-gray-200 transition-colors">
-            Explore Events
-          </Link>
-        </div>
-      )}
+      {/* --- 2. NEW TABBED DASHBOARD (Replaces the old Schedule Section) --- */}
+      <ProfileTabs 
+        attending={attending} 
+        hosting={hosting} 
+        userId={session.user.id!} 
+      />
+      
     </section>
   );
 }
