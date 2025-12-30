@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "DevEventSync App",
   description: "syncing events made easy",
   icons: {
-    icon: "/icons/logo.png",
+    icon: "/icon.png",
   },
 };
 
