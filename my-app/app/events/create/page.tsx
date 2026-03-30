@@ -138,6 +138,34 @@ export default function CreateEventPage() {
               </select>
             </div>
 
+            {/* --- CATEGORY SELECTOR (ML) --- */}
+            <div>
+              <label className={label}>Category</label>
+              <select name="category" className={input}>
+                <option value="general">General</option>
+                <option value="frontend">Frontend</option>
+                <option value="backend">Backend</option>
+                <option value="devops">DevOps</option>
+                <option value="ai-ml">AI / ML</option>
+                <option value="mobile">Mobile</option>
+                <option value="blockchain">Blockchain</option>
+                <option value="cloud">Cloud</option>
+                <option value="security">Security</option>
+                <option value="data">Data</option>
+                <option value="design">Design</option>
+              </select>
+            </div>
+
+            {/* --- DIFFICULTY SELECTOR (ML) --- */}
+            <div>
+              <label className={label}>Difficulty Level</label>
+              <select name="difficulty" className={input}>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+
             {/* --- NEW CAPACITY INPUT --- */}
             <div>
               <label className={label}>Total Capacity</label>

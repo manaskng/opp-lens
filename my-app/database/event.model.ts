@@ -16,9 +16,13 @@ export interface IEvent extends Document {
   agenda: string[];
   organizer: string;
   tags: string[];
-  // --- NEW FIELDS ---
+  // --- CAPACITY FIELDS ---
   capacity: number;
   seatsTaken: number;
+  // --- ML RECOMMENDATION FIELDS ---
+  category: string;
+  difficulty: string;
+  viewCount: number;
   // ------------------
   createdAt: Date;
   updatedAt: Date;
@@ -107,15 +111,36 @@ const EventSchema = new Schema<IEvent>(
         message: 'At least one tag is required',
       },
     },
-    // --- NEW FIELDS FOR CONCURRENCY ---
+    // --- CAPACITY FIELDS ---
     capacity: { 
       type: Number, 
-      default: 50, // Default to 50 spots
+      default: 50,
       min: [1, 'Capacity must be at least 1'] 
     }, 
     seatsTaken: { 
       type: Number, 
       default: 0 
+    },
+    // --- ML RECOMMENDATION FIELDS ---
+    category: {
+      type: String,
+      enum: {
+        values: ['frontend', 'backend', 'devops', 'ai-ml', 'mobile', 'blockchain', 'cloud', 'security', 'data', 'design', 'general'],
+        message: 'Invalid category',
+      },
+      default: 'general',
+    },
+    difficulty: {
+      type: String,
+      enum: {
+        values: ['beginner', 'intermediate', 'advanced'],
+        message: 'Difficulty must be beginner, intermediate, or advanced',
+      },
+      default: 'intermediate',
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
     },
   },
   {

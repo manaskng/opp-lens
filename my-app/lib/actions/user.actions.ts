@@ -82,6 +82,14 @@ export async function updateUser(formData: FormData) {
     ? interestsString.split(",").map((i) => i.trim()).filter((i) => i.length > 0)
     : [];
 
+  // --- ML RECOMMENDATION PREFERENCES ---
+  const preferredCategoriesString = formData.get("preferredCategories") as string;
+  const preferredCategories = preferredCategoriesString
+    ? preferredCategoriesString.split(",").map((c) => c.trim().toLowerCase()).filter((c) => c.length > 0)
+    : [];
+  const preferredMode = (formData.get("preferredMode") as string) || "any";
+  const skillLevel = (formData.get("skillLevel") as string) || "intermediate";
+
   try {
     await User.findOneAndUpdate(
       { email: session.user.email },
@@ -89,10 +97,14 @@ export async function updateUser(formData: FormData) {
         bio, 
         location, 
         interests,
-        // Save new fields
+        // Save social fields
         portfolio,
         github,
-        institution
+        institution,
+        // Save ML preference fields
+        preferredCategories,
+        preferredMode,
+        skillLevel,
       },
       { new: true }
     );

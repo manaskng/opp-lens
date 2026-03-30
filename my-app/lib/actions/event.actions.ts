@@ -1,6 +1,8 @@
 "use server";
 
 import Event from '@/database/event.model';
+import User from '@/database/user.model';
+import Booking from '@/database/booking.model';
 import connectDB from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { v2 as cloudinary } from "cloudinary";
@@ -67,10 +69,12 @@ export const createEvent = async (formData: FormData) => {
             image: imageUrl,
             tags: tags,
             agenda: agenda,
-            // --- NEW CAPACITY FIELDS ---
+            // --- CAPACITY FIELDS ---
             capacity: Number(formData.get("capacity")) || 50,
             seatsTaken: 0,
-            // ---------------------------
+            // --- ML RECOMMENDATION FIELDS ---
+            category: formData.get("category") || "general",
+            difficulty: formData.get("difficulty") || "intermediate",
             // Auto-generate slug
             slug: (formData.get("title") as string).toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'),
         });
@@ -202,6 +206,160 @@ export const getRecommendedEvents = async ({ topic, limit = 3 }: { topic: string
     }
 }
 
+// --- ML-POWERED RECOMMENDATIONS ---
+export type RecommendedEvent = {
+    event: any;
+    score: number;
+    reason: string;
+};
+
+export const getMLRecommendedEvents = async (
+    userEmail: string,
+    limit: number = 6
+): Promise<{ events: RecommendedEvent[]; isMLPowered: boolean }> => {
+    try {
+        await connectDB();
+
+        // 1. Fetch user profile
+        const user = await User.findOne({ email: userEmail }).lean();
+        if (!user) {
+            return { events: [], isMLPowered: false };
+        }
+
+        // 2. Fetch all upcoming events
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const upcomingEvents = await Event.find({
+            date: { $gte: today.toISOString().split("T")[0] },
+        })
+            .sort({ date: 1 })
+            .lean();
+
+        if (upcomingEvents.length === 0) {
+            return { events: [], isMLPowered: false };
+        }
+
+        // 3. Fetch all bookings (for collaborative filtering)
+        const allBookings = await Booking.find({})
+            .select("email eventId")
+            .lean();
+
+        // 4. Prepare data for ML service
+        const sanitizedEvents = JSON.parse(JSON.stringify(upcomingEvents));
+        const sanitizedBookings = JSON.parse(JSON.stringify(allBookings));
+
+        const userProfile = {
+            email: (user as any).email,
+            interests: (user as any).interests || [],
+            preferredCategories: (user as any).preferredCategories || [],
+            preferredMode: (user as any).preferredMode || "any",
+            skillLevel: (user as any).skillLevel || "intermediate",
+            bio: (user as any).bio || "",
+        };
+
+        // 5. Call the Python ML Microservice
+        const ML_URL =
+            process.env.RECOMMENDATION_SERVICE_URL || "http://localhost:8000";
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+        try {
+            const response = await fetch(`${ML_URL}/recommend`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_profile: userProfile,
+                    events: sanitizedEvents.map((e: any) => ({
+                        _id: e._id.toString ? e._id.toString() : e._id,
+                        title: e.title || "",
+                        tags: e.tags || [],
+                        description: e.description || "",
+                        overview: e.overview || "",
+                        category: e.category || "general",
+                        difficulty: e.difficulty || "intermediate",
+                        audience: e.audience || "",
+                        mode: e.mode || "offline",
+                        date: e.date || "",
+                        seatsTaken: e.seatsTaken || 0,
+                        capacity: e.capacity || 50,
+                    })),
+                    all_bookings: sanitizedBookings.map((b: any) => ({
+                        email: b.email,
+                        eventId: b.eventId?.toString
+                            ? b.eventId.toString()
+                            : b.eventId,
+                    })),
+                    limit,
+                }),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeout);
+
+            if (!response.ok) {
+                throw new Error(`ML service returned ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // 6. Map recommended event IDs back to full event objects
+            const eventMap = new Map(
+                sanitizedEvents.map((e: any) => [
+                    e._id?.toString ? e._id.toString() : e._id,
+                    e,
+                ])
+            );
+
+            const recommended: RecommendedEvent[] = (
+                data.recommendations || []
+            )
+                .map((rec: any) => {
+                    const event = eventMap.get(rec.event_id);
+                    if (!event) return null;
+                    return {
+                        event,
+                        score: rec.score,
+                        reason: rec.reason,
+                    };
+                })
+                .filter(Boolean);
+
+            return { events: recommended, isMLPowered: true };
+        } catch (fetchError) {
+            clearTimeout(timeout);
+            console.warn(
+                "ML service unavailable, falling back to rule-based:",
+                fetchError instanceof Error
+                    ? fetchError.message
+                    : fetchError
+            );
+            // Fall through to fallback below
+        }
+
+        // FALLBACK: Use existing regex-based recommendations
+        const userInterests = (user as any).interests || [];
+        const fallbackTopic =
+            userInterests.length > 0 ? userInterests[0] : "Tech";
+        const fallbackEvents = await getRecommendedEvents({
+            topic: fallbackTopic,
+            limit,
+        });
+
+        return {
+            events: fallbackEvents.map((e: any) => ({
+                event: e,
+                score: 0,
+                reason: "Based on your interests",
+            })),
+            isMLPowered: false,
+        };
+    } catch (error) {
+        console.error("ML Recommendation Error:", error);
+        return { events: [], isMLPowered: false };
+    }
+};
+
 // --- UPDATE EVENT (With Capacity Safety) ---
 export const updateEvent = async (slug: string, formData: FormData) => {
     try {
@@ -270,6 +428,9 @@ export const updateEvent = async (slug: string, formData: FormData) => {
         event.image = imageUrl;
         event.tags = tags;
         event.agenda = agenda;
+        // --- ML RECOMMENDATION FIELDS ---
+        event.category = formData.get("category") || event.category || "general";
+        event.difficulty = formData.get("difficulty") || event.difficulty || "intermediate";
 
         await event.save();
         

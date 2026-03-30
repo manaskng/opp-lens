@@ -127,6 +127,59 @@ export default async function OnboardingPage() {
             <p className="text-xs text-gray-500">Separate multiple interests with commas.</p>
         </div>
 
+        {/* SECTION 4: RECOMMENDATION PREFERENCES (ML) */}
+        <div className="space-y-4">
+            <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                <span className="w-1 h-6 bg-orange-500 rounded-full"/> Recommendation Preferences
+            </h3>
+            <p className="text-xs text-gray-400">These help our ML engine find better events for you.</p>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Preferred Categories</label>
+                <div className="p-4 bg-dark-200 border border-white/10 rounded-xl focus-within:border-primary transition-colors">
+                    <input 
+                        name="preferredCategories" 
+                        type="text"
+                        defaultValue={user?.preferredCategories?.join(", ") || ""}
+                        placeholder="frontend, backend, ai-ml, devops, cloud..."
+                        className="w-full bg-transparent border-none text-white placeholder:text-gray-600 focus:outline-none"
+                    />
+                </div>
+                <p className="text-xs text-gray-500">
+                    Options: frontend, backend, devops, ai-ml, mobile, blockchain, cloud, security, data, design, general
+                </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Preferred Event Mode</label>
+                    <select 
+                        name="preferredMode" 
+                        defaultValue={user?.preferredMode || "any"}
+                        className="w-full bg-dark-200 border border-white/10 rounded-xl p-3 text-white focus:border-primary outline-none"
+                    >
+                        <option value="any">Any (No preference)</option>
+                        <option value="online">Online</option>
+                        <option value="offline">Offline</option>
+                        <option value="hybrid">Hybrid</option>
+                    </select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Skill Level</label>
+                    <select 
+                        name="skillLevel" 
+                        defaultValue={user?.skillLevel || "intermediate"}
+                        className="w-full bg-dark-200 border border-white/10 rounded-xl p-3 text-white focus:border-primary outline-none"
+                    >
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <button 
             type="submit" 
             className="w-full bg-primary hover:bg-white text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-8"

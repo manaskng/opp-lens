@@ -3,35 +3,41 @@ import { getUserOnboarding } from "@/lib/actions/user.actions";
 import EventCard from "@/components/EventCard";
 import SearchForm from "@/components/SearchForm";
 import TrendingCarousel from "@/components/TrendingCarousel"; 
-import { getAllEvents, getUpcomingEvents, getRecommendedEvents } from "@/lib/actions/event.actions";
+import { getAllEvents, getUpcomingEvents, getMLRecommendedEvents } from "@/lib/actions/event.actions";
 import { IEvent } from "@/database/event.model";
 import Link from "next/link";
-import { Sparkles, Clock, Settings, Flame, SearchX } from "lucide-react"; 
+import { Sparkles, Clock, Settings, Flame, SearchX, Brain, Zap } from "lucide-react"; 
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ query?: string }> }) {
     const { query } = await searchParams;
     const session = await auth();
 
-    // --- 1. SMART RECOMMENDATION LOGIC ---
-    let userInterests = "Tech"; 
+    //  SMART RECOMMENDATION LOGIC ---
+    let userInterestsLabel = "Tech"; 
     let hasInterests = false;
+    let user: any = null;
 
     if (session) {
-        const user = await getUserOnboarding();
+        user = await getUserOnboarding();
         if (user?.interests && user.interests.length > 0) {
-            userInterests = user.interests[0]; 
+            // Show ALL interests, not just the first one
+            userInterestsLabel = user.interests.slice(0, 3).join(", "); 
             hasInterests = true;
         }
     }
 
-    // --- 2. DATA FETCHING ---
-    // We always fetch 'allEvents' based on the query. 
-    // If query is empty, it returns latest events. If query exists, it returns search results.
+    // DATA FETCHING ---
+    
     const allEvents = await getAllEvents({ query: query || '', limit: 10 });
     
     // Only fetch extras if we are NOT searching (Optimization)
     const upcomingEvents = !query ? await getUpcomingEvents(6) : [];
-    const recommendedEvents = !query ? await getRecommendedEvents({ topic: userInterests, limit: 3 }) : [];
+    
+    // ML-POWERED RECOMMENDATIONS (with automatic fallback)
+    let mlRecommendations: { events: any[]; isMLPowered: boolean } = { events: [], isMLPowered: false };
+    if (!query && session?.user?.email) {
+        mlRecommendations = await getMLRecommendedEvents(session.user.email, 4);
+    }
     
     // Greeting
     const hour = new Date().getHours();
@@ -124,15 +130,25 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
                             </ul>
                         </div>
 
-                        {/* RELEVANCE SIDEBAR */}
+                        {/* RELEVANCE SIDEBAR — ML Powered */}
                         <div className="lg:col-span-4 space-y-8">
                             <div className="sticky top-24">
                                 <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
                                     <div className="flex items-center gap-2">
                                         <Flame className="text-orange-500" size={20} />
                                         <div>
-                                            <h3 className="text-lg font-bold text-white">For You</h3>
-                                            <p className="text-xs text-gray-400">Based on "{userInterests}"</p>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-lg font-bold text-white">For You</h3>
+                                                {mlRecommendations.isMLPowered && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-[10px] font-bold text-purple-300 uppercase tracking-wider">
+                                                        <Brain size={10} />
+                                                        ML
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-400">
+                                                {hasInterests ? `Based on "${userInterestsLabel}"` : "Popular picks"}
+                                            </p>
                                         </div>
                                     </div>
                                     <Link href="/profile/edit" title="Edit Interests" className="p-2 hover:bg-white/10 rounded-full transition-colors">
@@ -141,19 +157,37 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
                                 </div>
 
                                 <div className="flex flex-col gap-6">
-                                    {recommendedEvents.length > 0 ? recommendedEvents.map((event: IEvent) => (
-                                        <div key={event._id as string} className="scale-95 origin-left">
-                                            <EventCard {...event} />
+                                    {mlRecommendations.events.length > 0 ? mlRecommendations.events.map((rec: any) => (
+                                        <div key={rec.event._id as string} className="scale-95 origin-left relative">
+                                            {/* Recommendation Reason Badge */}
+                                            {rec.reason && (
+                                                <div className="mb-2 flex items-center gap-2 flex-wrap">
+                                                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-gray-300">
+                                                        <Zap size={10} className="text-yellow-400" />
+                                                        {rec.reason}
+                                                    </div>
+                                                    {rec.score > 0 && (
+                                                        <span className="text-[10px] font-bold text-gray-500">
+                                                            {Math.round(rec.score * 100)}% match
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            <EventCard {...rec.event} />
                                         </div>
                                     )) : (
                                         <div className="p-6 text-center border border-dashed border-white/10 rounded-xl">
-                                            <p className="text-gray-500 text-sm mb-4">No events found for "{userInterests}".</p>
-                                            <Link href="/profile/edit" className="text-primary text-xs font-bold hover:underline">Change Interests</Link>
+                                            <p className="text-gray-500 text-sm mb-4">
+                                                {session ? "No recommendations yet. Add interests for personalized picks!" : "Sign in for personalized recommendations."}
+                                            </p>
+                                            <Link href={session ? "/profile/edit" : "/login"} className="text-primary text-xs font-bold hover:underline">
+                                                {session ? "Add Interests" : "Sign In"}
+                                            </Link>
                                         </div>
                                     )}
                                 </div>
                                 
-                                {!hasInterests && (
+                                {!hasInterests && session && (
                                     <div className="mt-8 p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-white/10 text-center">
                                         <h4 className="font-bold text-white mb-2">Want better picks?</h4>
                                         <p className="text-sm text-gray-300 mb-4">Add your interests to get a curated feed.</p>

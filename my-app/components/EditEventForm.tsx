@@ -122,6 +122,34 @@ export default function EditEventForm({ event, slug }: EditEventFormProps) {
          </div>
       </div>
 
+      {/* --- ML RECOMMENDATION FIELDS --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+              <label className={label}>Category</label>
+              <select name="category" defaultValue={event.category || "general"} className={input}>
+                 <option value="general">General</option>
+                 <option value="frontend">Frontend</option>
+                 <option value="backend">Backend</option>
+                 <option value="devops">DevOps</option>
+                 <option value="ai-ml">AI / ML</option>
+                 <option value="mobile">Mobile</option>
+                 <option value="blockchain">Blockchain</option>
+                 <option value="cloud">Cloud</option>
+                 <option value="security">Security</option>
+                 <option value="data">Data</option>
+                 <option value="design">Design</option>
+              </select>
+         </div>
+          <div>
+              <label className={label}>Difficulty Level</label>
+              <select name="difficulty" defaultValue={event.difficulty || "intermediate"} className={input}>
+                 <option value="beginner">Beginner</option>
+                 <option value="intermediate">Intermediate</option>
+                 <option value="advanced">Advanced</option>
+              </select>
+         </div>
+      </div>
+
       <div>
          <label className={label}>Audience</label>
          <input name="audience" defaultValue={event.audience} className={input} required />

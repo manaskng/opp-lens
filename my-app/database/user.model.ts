@@ -10,7 +10,11 @@ export interface IUser extends Document {
   location?: string;
   portfolio?: string;
   github?: string;
-  institution?: string; 
+  institution?: string;
+  // --- ML RECOMMENDATION FIELDS ---
+  preferredCategories: string[];
+  preferredMode: string;
+  skillLevel: string;
 }
 
 const UserSchema = new Schema({
@@ -23,6 +27,10 @@ const UserSchema = new Schema({
   portfolio: { type: String },
   github: { type: String },
   institution: { type: String },
+  // --- ML RECOMMENDATION FIELDS ---
+  preferredCategories: { type: [String], default: [] },
+  preferredMode: { type: String, enum: ['online', 'offline', 'hybrid', 'any'], default: 'any' },
+  skillLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'intermediate' },
 }, { timestamps: true });
 
 const User = models.User || model("User", UserSchema);
