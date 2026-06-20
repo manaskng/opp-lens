@@ -11,3 +11,4 @@ fake-useragent==2.0.3
 sentence-transformers==3.3.0
 apscheduler==3.10.4
 lxml==5.3.0
+playwright==1.42.0
