@@ -355,7 +355,7 @@ export const getMLRecommendedEvents = async (
             isMLPowered: false,
         };
     } catch (error) {
-        console.error("ML Recommendation Error:", error);
+        console.warn("ML Recommendation Error:", error instanceof Error ? error.message : String(error));
         return { events: [], isMLPowered: false };
     }
 };

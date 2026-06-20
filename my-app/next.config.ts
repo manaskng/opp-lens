@@ -17,7 +17,13 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com', pathname: '/**' },
       { protocol: 'https', hostname: 'avatars.githubusercontent.com', pathname: '/**' },
-      { protocol: 'https', hostname: 'ui-avatars.com', pathname: '/**' }
+      { protocol: 'https', hostname: 'ui-avatars.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'd8it4huxumps7.cloudfront.net', pathname: '/**' },
+      { protocol: 'https', hostname: 'assets.devfolio.co', pathname: '/**' },
+      { protocol: 'https', hostname: 's3.amazonaws.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'hrcdn.net', pathname: '/**' },
+      { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
+      { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' }
     ]
   },
 

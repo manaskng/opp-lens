@@ -30,9 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${schibstedGrotesk.variable} ${martianMono.variable} antialiased min-h-screen bg-dark-100 text-white`}
+        suppressHydrationWarning
       >
         {/* 2. Wrap Navbar in Suspense. fallback is what shows while loading */}
         <Suspense fallback={<div className="h-16 w-full glass fixed top-0 z-50 opacity-50" />}>

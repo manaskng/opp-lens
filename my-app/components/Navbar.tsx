@@ -24,12 +24,13 @@ const Navbar = async () => {
         <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-light-200">
           <li>
             <Link href="/" className="hover:text-primary transition-colors duration-200">
-              Explore
+              Home
             </Link>
           </li>
           <li>
-            <Link href="/#events" className="hover:text-primary transition-colors duration-200">
-              Events
+            <Link href="/opportunities" className="hover:text-primary transition-colors duration-200 relative pr-10">
+              Opportunities 
+              <span className="absolute -top-1 -right-2 bg-primary/20 text-primary text-[10px] px-2 py-0.5 rounded-full border border-primary/30">New</span>
             </Link>
           </li>
         </ul>

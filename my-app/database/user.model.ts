@@ -15,6 +15,9 @@ export interface IUser extends Document {
   preferredCategories: string[];
   preferredMode: string;
   skillLevel: string;
+  // --- OPPHUB V2 FIELDS ---
+  organisations: string[];
+  lastOpportunityVisit: Date | null;
 }
 
 const UserSchema = new Schema({
@@ -31,6 +34,9 @@ const UserSchema = new Schema({
   preferredCategories: { type: [String], default: [] },
   preferredMode: { type: String, enum: ['online', 'offline', 'hybrid', 'any'], default: 'any' },
   skillLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'intermediate' },
+  // --- OPPHUB V2 FIELDS ---
+  organisations: { type: [{ type: Schema.Types.ObjectId, ref: 'Organisation' }], default: [] },
+  lastOpportunityVisit: { type: Date, default: null },
 }, { timestamps: true });
 
 const User = models.User || model("User", UserSchema);
