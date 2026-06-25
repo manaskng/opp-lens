@@ -29,7 +29,7 @@ graph TD
         Cron[APScheduler]
     end
 
-    subgraph External Platforms
+    subgraph ExternalPlatforms [External Platforms]
         Dev[Devfolio]
         Unstop[Unstop]
         HE[HackerEarth API]
@@ -56,7 +56,7 @@ graph TD
     ML <--> VS
     
     Cron -->|Triggers| Scraper
-    Scraper -->|Graceful Degradation| External Platforms
+    Scraper -->|Graceful Degradation| ExternalPlatforms
     Scraper -->|Upsert Deduplicated Data| Mongo
 ```
 
