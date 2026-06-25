@@ -16,7 +16,7 @@ const Navbar = async () => {
             <Image src="/icons/logo.png" alt="logo" fill className="object-contain" />
           </div>
           <p className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-            DevEvent
+            OppLens
           </p>
         </Link>
 

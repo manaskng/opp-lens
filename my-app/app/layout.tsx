@@ -17,7 +17,7 @@ const martianMono = Martian_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DevEventSync App",
+  title: "OppLens",
   description: "syncing events made easy",
   icons: {
     icon: "/icon.png",
